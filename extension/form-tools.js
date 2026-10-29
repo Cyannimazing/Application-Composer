@@ -1,5 +1,5 @@
 (() => {
-  if (window.ApplicationComposer?.version === 1) return;
+  if (window.ApplicationComposer?.version === 2) return;
   let current = null;
   const protectedWords = /password|credit.?card|card.?number|\bcvv\b|\bcvc\b|one.?time.?password|verification.?code|secret.?key|captcha|\botp\b/i;
   const allowed = new Set(["text", "email", "url", "tel", "number", "search"]);
@@ -30,6 +30,19 @@
     visit(document);
     return found.slice(0, 100);
   }
+  function pageDetails() {
+    const description = Array.from(document.querySelectorAll('#job-description,[itemprop="description"],[data-test="description"],[data-test="job-description"],[data-test="job-details-description"],[data-testid="job-description"],.job-description')).find(visible);
+    const root = description || document.querySelector("main,[role=main],article") || document.body;
+    const parts = [], walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const parent = walker.currentNode.parentElement;
+      if (!parent || !visible(parent) || parent.closest('input,textarea,select,button,script,style,noscript,nav,footer,header,[contenteditable],[role="search"]')) continue;
+      const text = walker.currentNode.textContent.replace(/\s+/g, " ").trim();
+      if (text) parts.push(text);
+    }
+    const heading = Array.from(document.querySelectorAll("main h1,[role=main] h1,article h1,h1")).find(visible);
+    return { title: (heading?.textContent || document.title || "Job application").trim().slice(0, 1000), context: parts.join("\n").slice(0, 30000) };
+  }
   function capture(id) {
     if (!id || typeof id !== "string") throw new Error("A capture id is required.");
     const map = new Map();
@@ -39,11 +52,8 @@
       map.set(fieldId, { el, field, original: value(el) || "" });
       return field;
     });
-    // Do not capture the contents of other form controls as surrounding page text.
-    const root = (document.querySelector("main,[role=main],article") || document.body).cloneNode(true);
-    root.querySelectorAll("input,textarea,select,script,style,nav,footer,[contenteditable],form [hidden]").forEach(el => el.remove());
-    const context = (root.innerText || root.textContent || "").replace(/\n{3,}/g, "\n\n").trim().slice(0, 30000);
-    const snapshot = { id, url: location.href, title: document.title || document.querySelector("h1")?.textContent || "Application form", context, fields, capturedAt: new Date().toISOString(), tabId: -1 };
+    const details = pageDetails();
+    const snapshot = { id, url: location.href, ...details, fields, capturedAt: new Date().toISOString(), tabId: -1 };
     current = { ...snapshot, map };
     return snapshot;
   }
@@ -75,5 +85,5 @@
     }
     return { filled, skipped };
   }
-  window.ApplicationComposer = { version: 1, capture, fill };
+  window.ApplicationComposer = { version: 2, capture, fill };
 })();

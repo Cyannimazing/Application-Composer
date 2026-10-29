@@ -1,1 +1,29 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Application Composer</title><link rel="stylesheet" href="popup.css"></head><body><main><div class="mark">AC<span>Application Composer</span></div><h1>Bring this form<br>to your workspace.</h1><p>Capture the fields on this page. Review your draft in the local app, then fill the answers you choose.</p><button id="capture">Capture this form</button><p id="status" role="status">Your applications stay in your control.</p><details id="pairing"><summary>Pair with the local app</summary><label for="key">Pairing key</label><input id="key" type="password" autocomplete="off" placeholder="Copy from Browser setup"><button id="save" class="secondary">Save and check connection</button></details><a href="http://127.0.0.1:32187" target="_blank" rel="noreferrer">Open Application Composer ↗</a></main><script type="module" src="popup.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Application Composer</title><link rel="stylesheet" href="popup.css"></head>
+<body><main>
+  <div class="mark">AC<span>Application Composer</span></div>
+  <h1>Your application,<br>ready to copy.</h1>
+  <p>Capture the job, generate a reviewed application, then copy the result here.</p>
+  <div class="platform-field"><span id="platform-label">Application platform</span>
+    <div class="platform-selector" role="radiogroup" aria-labelledby="platform-label">
+      <button type="button" role="radio" data-platform="onlinejobs" aria-checked="false" tabindex="-1">OnlineJobs.ph</button>
+      <button type="button" role="radio" data-platform="upwork" aria-checked="false" tabindex="-1">Upwork</button>
+      <button type="button" role="radio" data-platform="other" aria-checked="true" tabindex="0">Other</button>
+    </div>
+  </div>
+  <button id="capture-job" type="button">Capture &amp; generate</button>
+  <button id="capture" type="button" class="secondary">Capture form</button>
+  <p id="status" role="status" aria-live="polite">Choose a platform and capture the job. You send the application yourself.</p>
+  <section id="result" hidden aria-label="Your application result">
+    <h2 id="job-name"></h2><a id="job-source" target="_blank" rel="noreferrer">Captured job</a>
+    <div id="review" hidden></div>
+    <button id="copy-all" type="button" disabled>Copy application</button>
+    <div id="answers"></div>
+    <button id="regenerate" type="button" class="secondary">Generate again</button>
+    <details class="captured-details"><summary>Captured job details</summary><textarea id="job-context" aria-label="Captured job description" readonly rows="6"></textarea><button id="copy-details" type="button" class="secondary">Copy job details</button></details>
+    <p class="copy-note">Only answer text is copied. Review notes stay here.</p>
+  </section>
+  <details id="pairing"><summary>Pair with the local app</summary><label for="key">Pairing key</label><input id="key" type="password" autocomplete="off" placeholder="Copy from Browser setup"><button id="save" type="button" class="secondary">Save and check connection</button></details>
+  <a href="http://127.0.0.1:32187" target="_blank" rel="noreferrer">Open Application Composer ↗</a>
+</main><script type="module" src="popup.js"></script></body></html>

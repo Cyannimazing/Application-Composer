@@ -20,6 +20,34 @@ export function templateCapture(platform: Platform, questions = "", context = ""
   return { id, platform, url: `http://127.0.0.1:32187/${platform}/manual`, title: title || platforms.find(p => p.id === platform)!.title, context, fields: [...fields, ...extra], capturedAt: new Date().toISOString(), tabId: -1, manual: true };
 }
 
+function jobIdentity(capture: Capture): string {
+  const url = new URL(capture.url), host = url.hostname.toLowerCase().replace(/^www\./, "");
+  if (host === "onlinejobs.ph" || host.endsWith(".onlinejobs.ph")) {
+    const id = url.pathname.match(/\/jobseekers\/job\/[^/]*-(\d+)\/?$/)?.[1] || url.pathname.match(/\/jobseekers\/apply(?:job)?\/(\d+)\/?$/)?.[1];
+    if (id) return `onlinejobs:${id}`;
+  }
+  if (host === "upwork.com" || host.endsWith(".upwork.com")) {
+    const id = url.pathname.match(/~([a-z0-9]+)/i)?.[1];
+    if (id) return `upwork:${id}`;
+  }
+  return `${url.origin}${url.pathname}${url.search}`;
+}
+
+export function prepareBrowserCapture(capture: Capture, previous: Capture[]): Capture {
+  const platform = detectPlatform(capture);
+  if (capture.jobListing) {
+    if (!capture.context.trim()) throw new Error("No readable job description was found. Expand the job details and capture again, or paste them into Composer.");
+    const template = templateCapture(platform, "", capture.context, capture.title);
+    return { ...capture, platform, manual: true, jobListing: true, fields: template.fields };
+  }
+  if (!capture.fields.length) throw new Error("No editable application fields were found. Use Capture job details on a listing, or open its application form before choosing Capture form.");
+  const listing = [...previous].reverse().find(source => source.jobListing && jobIdentity(source) === jobIdentity(capture));
+  const context = listing && !capture.context.includes(listing.context)
+    ? `${listing.context}\n\nApplication form context:\n${capture.context}`.slice(0, 40000)
+    : capture.context;
+  return { ...capture, platform, manual: false, jobListing: false, title: listing?.title || capture.title, context };
+}
+
 export function personalAnswers(capture: Capture, profile: import("./contracts").Profile): import("./contracts").Answer[] {
   return capture.fields.map(field => {
     const label = field.label.toLowerCase(); let value = "";

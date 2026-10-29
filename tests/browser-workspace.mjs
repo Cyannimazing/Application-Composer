@@ -20,6 +20,10 @@ await context.addInitScript(({ fixture }) => {
 await context.route('**/api/settings', route => route.fulfill({ json: { provider: 'codex' } }));
 await context.route('**/api/state', route => route.fulfill({ json: { capture: null, fillResult: null } }));
 await context.route('**/api/health', route => route.fulfill({ json: { available: true, loggedIn: true, version: 'QA', detail: '' } }));
+let preparedCapture;
+await context.route('**/api/capture', route => { preparedCapture = route.request().postDataJSON(); return route.fulfill({ json: preparedCapture }); });
+await context.route('**/api/generate', route => route.fulfill({ json: { id: 'qa-workspace-generate' } }));
+await context.route('**/api/jobs/qa-workspace-generate', route => route.fulfill({ json: { state: 'complete', draft: { answers: preparedCapture.fields.map(field => ({ fieldId: field.id, value: '', reason: '', needsInput: false })), notes: [], review: { eligibility: 'fit', summary: 'Browser fixture reviewed.', questionsCovered: [], keywordsChecked: [], warnings: [] } } } }));
 try {
   await app.goto('http://127.0.0.1:32187/?platform=onlinejobs');
   await app.getByRole('heading', { name: 'OnlineJobs.ph application', exact: true }).waitFor();

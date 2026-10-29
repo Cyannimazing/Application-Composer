@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Application Composer Companion",
-  "description": "Capture website application fields and fill answers you reviewed in your local Application Composer. You submit every application.",
-  "version": "0.1.0",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "description": "Capture job descriptions or application fields for OnlineJobs.ph, Upwork and other websites. Review answers locally and submit yourself.",
+  "version": "0.3.0",
+  "permissions": ["activeTab", "scripting", "storage", "clipboardWrite"],
   "host_permissions": ["http://127.0.0.1:32187/*"],
   "background": { "service_worker": "background.js" },
   "action": { "default_popup": "popup.html", "default_title": "Application Composer" },

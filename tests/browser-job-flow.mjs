@@ -1,0 +1,72 @@
+import assert from "node:assert/strict";
+import { chromium } from "playwright";
+import { cp, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+
+// Uses the user's already-running app. Never starts a development server.
+const base = "http://127.0.0.1:32187";
+const marker = "QA-LISTING-CAPTURE-ONLY";
+const extension = await mkdtemp(path.resolve(".local/job-capture-extension-"));
+await cp("extension", extension, { recursive: true });
+const background = path.join(extension, "background.js");
+await writeFile(background, (await readFile(background, "utf8")).replace('"X-Composer-Key": pairingKey', '"X-Composer-Key": pairingKey, "X-Composer-Test": "1"'));
+const manifestPath = path.join(extension, "manifest.json");
+const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+manifest.host_permissions.push("https://www.onlinejobs.ph/*", "https://www.upwork.com/*", "https://careers.example.com/*");
+await writeFile(manifestPath, JSON.stringify(manifest));
+const installed = (await readdir(".local/browsers")).find(name => /^chromium-\d+$/.test(name));
+const executablePath = path.resolve(".local/browsers", installed, "chrome-win64/chrome.exe");
+const context = await chromium.launchPersistentContext(await mkdtemp(path.resolve(".local/job-capture-browser-")), { executablePath, headless: true, viewport: { width: 1440, height: 1000 }, args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`], extraHTTPHeaders: { "X-Composer-Test": "1" } });
+context.setDefaultTimeout(15000);
+try {
+  await context.route("**/api/settings", route => route.fulfill({ json: { provider: "codex" } }));
+  const description = `${marker}: Build a website with Next.js, TypeScript and Supabase. Include SUNSHINE and describe a relevant project.`;
+  await context.route("https://www.onlinejobs.ph/**", route => route.fulfill({ contentType: "text/html", body: route.request().url().includes("/apply/")
+    ? '<h1>Apply</h1><main><p>Why are you a good fit?</p><form><label for="message">Application message</label><textarea id="message"></textarea><button>Send</button></form></main><script>window.submitted=0;document.querySelector("form").onsubmit=e=>{e.preventDefault();window.submitted++}</script>'
+    : `<title>OnlineJobs.ph</title><h1>Website Designer</h1><main><p id="job-description">${description}</p></main>` }));
+  await context.route("https://www.upwork.com/**", route => route.fulfill({ contentType: "text/html", body: `<h1>React developer</h1><main><div data-test="description">${marker}: Build a React dashboard. Include DASHBOARD.</div></main>` }));
+  await context.route("https://careers.example.com/**", route => route.fulfill({ contentType: "text/html", body: `<main><h1>Frontend engineer</h1><p>${marker}: Build accessible interfaces. Include ACCESSIBLE.</p></main>` }));
+  const app = await context.newPage();
+  await app.goto(base);
+  await app.getByLabel("Job description", { exact: true }).waitFor();
+  await app.request.post(base + "/api/reset", { data: {} });
+  const { key } = JSON.parse(await readFile(".local/pairing.json", "utf8"));
+  const worker = context.serviceWorkers()[0] || await context.waitForEvent("serviceworker");
+  await worker.evaluate(key => chrome.storage.local.set({ pairingKey: key }), key);
+  const job = await context.newPage();
+  await job.goto("https://www.onlinejobs.ph/jobseekers/job/designer-1758461");
+  await job.bringToFront();
+  assert.equal((await worker.evaluate(() => captureTab("job", "onlinejobs"))).mode, "job");
+  await app.waitForFunction(marker => document.getElementById("job-description")?.value.includes(marker), marker);
+  assert.equal(await app.getByLabel("Job title", { exact: true }).inputValue(), "Website Designer");
+  assert.equal(await app.getByLabel("Job description", { exact: true }).inputValue(), description);
+  await app.getByLabel("Answer for Application message", { exact: true }).waitFor();
+  await app.screenshot({ path: "output/playwright/job-description-captured.png", fullPage: true });
+  await job.goto("https://www.upwork.com/jobs/React-Developer_~0123456789");
+  await job.bringToFront();
+  await worker.evaluate(() => captureTab("job", "upwork"));
+  await app.getByRole("heading", { name: "Upwork proposal", exact: true }).waitFor();
+  await app.waitForFunction(() => document.getElementById("job-description")?.value.includes("DASHBOARD"));
+  await job.goto("https://careers.example.com/jobs/frontend");
+  await job.bringToFront();
+  await worker.evaluate(() => captureTab("job", "other"));
+  await app.getByRole("heading", { name: "Website application", exact: true }).waitFor();
+  await app.waitForFunction(() => document.getElementById("job-description")?.value.includes("ACCESSIBLE"));
+  await job.goto("https://www.onlinejobs.ph/jobseekers/apply/1758461");
+  await job.bringToFront();
+  await worker.evaluate(() => captureTab("form", "onlinejobs"));
+  await app.getByLabel("Job context Editable", { exact: true }).waitFor();
+  const contextText = await app.locator("#job-context").inputValue();
+  assert.match(contextText, /SUNSHINE/);
+  assert.match(contextText, /Why are you a good fit/);
+  assert.doesNotMatch(contextText, /DASHBOARD|ACCESSIBLE/);
+  await app.getByLabel("Answer for Application message", { exact: true }).fill("SUNSHINE — I can help with your Next.js website and explain a relevant project.");
+  await app.getByRole("button", { name: "Fill 1 field", exact: true }).click();
+  await app.getByRole("status").filter({ hasText: "1 field filled" }).waitFor();
+  assert.match(await job.locator("#message").inputValue(), /SUNSHINE/);
+  assert.equal(await job.evaluate(() => window.submitted), 0);
+  const live = await (await fetch(base + "/api/state")).json();
+  assert.equal(live.capture?.context.includes(marker) || false, false, "QA captures must never enter the user's live state");
+  await app.request.post(base + "/api/reset", { data: {} });
+  console.log("PASS: real loaded extension captures job details for all three platforms, imports the source panel, retains matching job context, fills the real fixture form, never submits, and isolates QA state.");
+} finally { await context.close(); }

@@ -13,12 +13,42 @@ test("draft prompt grounds claims in the profile and treats job text as data", a
   assert.match(prompt, /booking interface/);
 });
 
+test("application prompts cover the complete client brief with simple English and evidenced project URLs", async () => {
+  const { buildPrompt, emptyProfile } = await import("../src/lib/contracts");
+  const prompt = buildPrompt(emptyProfile, { id: "brief", url: "https://example.com/job", title: "Website developer", context: "Send 3–5 websites, your role, a platform recommendation, price, timeline and ongoing costs.", fields: [], capturedAt: "", tabId: -1 });
+  assert.match(prompt, /simple English/i);
+  assert.match(prompt, /requested number of (?:projects|examples|links)/i);
+  assert.match(prompt, /public (?:project )?URL/i);
+  assert.match(prompt, /every (?:client )?(?:question|requirement)/i);
+  assert.match(prompt, /timeline/i);
+  assert.match(prompt, /actual (?:work|project) (?:folders|code)/i);
+});
+
 test("output validation rejects invented field ids, duplicate answers and overlong values", async () => {
   const { validateDraft } = await import("../src/lib/contracts");
   const fields = [{ id: "f1", label: "Subject", type: "text", value: "", required: true, maxLength: 10, options: [] }];
   assert.throws(() => validateDraft({ answers: [{ fieldId: "unknown", value: "Hi", reason: "", needsInput: false }], notes: [] }, fields), /field/i);
   assert.throws(() => validateDraft({ answers: [{ fieldId: "f1", value: "abcdefghijkl", reason: "", needsInput: false }], notes: [] }, fields), /limit/i);
   assert.throws(() => validateDraft({ answers: [{ fieldId: "f1", value: "Hi", reason: "", needsInput: false }, { fieldId: "f1", value: "Yo", reason: "", needsInput: false }], notes: [] }, fields), /duplicate/i);
+});
+
+test("application text uses normal hyphens while preserving exact select values", async () => {
+  const { validateDraft } = await import("../src/lib/contracts");
+  const fields = [{ id: "message", label: "Message", type: "textarea", value: "", required: true, maxLength: 1000, options: [] }, { id: "duration", label: "Duration", type: "select", value: "", required: false, maxLength: 100, options: [{ value: "1–2 weeks", label: "1–2 weeks" }] }];
+  const draft = validateDraft({ answers: [{ fieldId: "message", value: "Next.js — Supabase; 1–2 weeks", reason: "", needsInput: false }, { fieldId: "duration", value: "1–2 weeks", reason: "", needsInput: false }], notes: [] }, fields);
+  assert.equal(draft.answers[0].value, "Next.js - Supabase; 1-2 weeks");
+  assert.equal(draft.answers[1].value, "1–2 weeks");
+});
+
+test("timeline guidance uses the applicant's scoped agile delivery policy", async () => {
+  const { buildPrompt, emptyProfile } = await import("../src/lib/contracts");
+  const prompt = buildPrompt(emptyProfile, { id: "timeline", url: "https://example.com/job", title: "Website", context: "Give your timeline", fields: [], capturedAt: "", tabId: -1 });
+  assert.match(prompt, /normal hyphen/i);
+  assert.match(prompt, /1-2 weeks/);
+  assert.match(prompt, /2 days.*mockups/i);
+  assert.match(prompt, /1 week.*MVP/i);
+  assert.match(prompt, /testing.*client feedback/i);
+  assert.match(prompt, /scope/i);
 });
 
 test("capture accepts only normal web pages and bounded editable fields", async () => {

@@ -10,13 +10,13 @@ export function codexArgs(cwd: string, schema: string, output: string): string[]
 }
 export const runProcess = (args: string[], input = "", timeout = 15000) => runCli("codex", args, input, timeout);
 export const codexStatus = () => cliStatus("codex");
-export type DraftJob = { id: string; state: "running" | "complete" | "failed"; stage: "drafting" | "reviewing"; startedAt: string; draft?: Draft; error?: string };
+export type DraftJob = { id: string; captureId: string; state: "running" | "complete" | "failed"; stage: "drafting" | "reviewing"; startedAt: string; draft?: Draft; error?: string };
 const jobsGlobal = globalThis as typeof globalThis & { composerJobs?: Map<string, DraftJob> };
 export const jobs = jobsGlobal.composerJobs ??= new Map<string, DraftJob>();
 export function startDraft(profile: Profile, capture: Capture, existingDraft?: Draft, options: { provider?: Provider; persist?: boolean } = {}): DraftJob {
   if ([...jobs.values()].some(job => job.state === "running")) throw new Error("Another draft is being generated. Wait for it to finish before starting a new one.");
   for (const [id, job] of jobs) if (Date.now() - Date.parse(job.startedAt) > 3600000) jobs.delete(id);
-  const job: DraftJob = { id: crypto.randomUUID(), state: "running", stage: existingDraft ? "reviewing" : "drafting", startedAt: new Date().toISOString() };
+  const job: DraftJob = { id: crypto.randomUUID(), captureId: capture.id, state: "running", stage: existingDraft ? "reviewing" : "drafting", startedAt: new Date().toISOString() };
   jobs.set(job.id, job);
   void (async () => {
     const dir = path.join(localDir, "jobs", job.id);

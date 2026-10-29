@@ -7,22 +7,72 @@ async function api(route, options = {}) {
   catch { throw new Error("Application Composer is not reachable. Start the local app and try again."); }
   const data = await response.json(); if (!response.ok) throw new Error(data.error || "Browser connection failed."); return data;
 }
-async function captureTab() {
+async function captureTab(mode = "form", platform, openComposer = true) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id || !/^https?:\/\//.test(tab.url || "")) throw new Error("Open a regular website application form before capturing.");
+  if (!tab?.id || !/^https?:\/\//.test(tab.url || "")) throw new Error("Open a website job listing or application form before capturing.");
   if ((tab.url || "").startsWith(base)) throw new Error("Capture from the website's application tab, not the Composer tab. For a test, open the practice form.");
   await api("");
   await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["form-tools.js"] });
   const id = crypto.randomUUID();
   const [result] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: captureId => window.ApplicationComposer.capture(captureId), args: [id] });
-  if (!result?.result?.fields?.length) throw new Error("No supported editable fields were found. Open the application form, then capture again. Frames or custom controls may need manual input.");
-  const capture = { ...result.result, tabId: tab.id };
-  await api("/capture", { method: "POST", body: JSON.stringify(capture) });
-  await chrome.storage.session.set({ lastCapture: capture });
-  const tabs = await chrome.tabs.query({ url: base + "/*" });
-  if (tabs.length) await chrome.tabs.update(tabs[0].id, { active: true });
-  else await chrome.tabs.create({ url: base });
-  return { count: capture.fields.length };
+  if (!result?.result) throw new Error("This page could not be read. Reload it and try again.");
+  const jobListing = mode === "job";
+  if (jobListing && !result.result.context?.trim()) throw new Error("No readable job details were found. Expand the description or paste it into Composer.");
+  if (!jobListing && !result.result.fields?.length) throw new Error("No editable fields were found. Choose Capture job details on a listing, or open the application form and choose Capture form.");
+  const selectedPlatform = ["onlinejobs", "upwork", "other"].includes(platform) ? platform : undefined;
+  const capture = { ...result.result, tabId: tab.id, jobListing, fields: jobListing ? [] : result.result.fields, ...(selectedPlatform ? { platform: selectedPlatform } : {}) };
+  const saved = await api("/capture", { method: "POST", body: JSON.stringify(capture) });
+  const prepared = saved.capture || capture;
+  await chrome.storage.session.set({ lastCapture: prepared });
+  if (openComposer) {
+    const tabs = await chrome.tabs.query({ url: base + "/*" });
+    if (tabs.length) await chrome.tabs.update(tabs[0].id, { active: true });
+    else await chrome.tabs.create({ url: base });
+  }
+  return { count: capture.fields.length, mode: jobListing ? "job" : "form", capture: prepared };
+}
+function sessionKey(platform) { return "application-draft:" + (["onlinejobs", "upwork", "other"].includes(platform) ? platform : "other"); }
+async function generateCaptured(capture, platform) {
+  const key = sessionKey(platform);
+  const previous = (await chrome.storage.session.get(key))[key];
+  const pending = previous?.capture.id === capture.id ? { ...previous, error: null } : { capture, jobId: null, error: null };
+  await chrome.storage.session.set({ [key]: pending });
+  try {
+    const job = await api("/generate", { method: "POST", body: JSON.stringify({ captureId: capture.id }) });
+    await chrome.storage.session.set({ [key]: { capture, jobId: job.id, error: null } });
+    return { capture, job };
+  } catch (error) {
+    await chrome.storage.session.set({ [key]: { ...pending, error: error.message } });
+    throw error;
+  }
+}
+async function captureAndGenerate(mode, platform) {
+  const { capture } = await captureTab(mode, platform, false);
+  return generateCaptured(capture, platform);
+}
+async function draftStatus(platform) {
+  const key = sessionKey(platform), values = await chrome.storage.session.get(key), session = values[key];
+  if (!session) return null;
+  if (session.job?.state === "complete") return { capture: session.capture, job: session.job };
+  if (!session.jobId) return { capture: session.capture, job: null, error: session.error };
+  const job = await api("/jobs/" + encodeURIComponent(session.jobId));
+  const current = (await chrome.storage.session.get(key))[key];
+  if (current?.capture.id !== session.capture.id || current?.jobId !== session.jobId) return draftStatus(platform);
+  if (job.state === "complete") await chrome.storage.session.set({ [key]: { ...session, job } });
+  return { capture: session.capture, job };
+}
+async function regenerate(platform) {
+  const key = sessionKey(platform), values = await chrome.storage.session.get(key), session = values[key];
+  if (!session?.capture) throw new Error("Capture a job before generating.");
+  return generateCaptured(session.capture, platform);
+}
+async function rememberDraft(jobId, captureId) {
+  const job = await api("/jobs/" + encodeURIComponent(jobId));
+  if (job.captureId !== captureId) throw new Error("This draft belongs to a different job.");
+  const capture = await api("/captures/" + encodeURIComponent(captureId));
+  const key = sessionKey(capture.platform);
+  await chrome.storage.session.set({ [key]: { capture, jobId: job.id, error: null } });
+  return { ok: true };
 }
 async function fillCommand(commandId) {
   const { command } = await api("/command?id=" + encodeURIComponent(commandId));
@@ -41,7 +91,11 @@ async function fillCommand(commandId) {
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
   let job;
   const ownPage = !sender.tab || sender.url?.startsWith(chrome.runtime.getURL(""));
-  if (message?.action === "capture" && ownPage) job = captureTab();
+  if (message?.action === "capture" && ownPage) job = captureTab(message.mode, message.platform);
+  else if (message?.action === "capture-generate" && ownPage) job = captureAndGenerate(message.mode, message.platform);
+  else if (message?.action === "draft-status" && ownPage) job = draftStatus(message.platform);
+  else if (message?.action === "regenerate" && ownPage) job = regenerate(message.platform);
+  else if (message?.action === "draft-session" && sender.tab?.url?.startsWith(base + "/") && typeof message.jobId === "string" && typeof message.captureId === "string") job = rememberDraft(message.jobId, message.captureId);
   else if (message?.action === "check" && ownPage) job = api("");
   else if (message?.action === "fill" && sender.tab?.url?.startsWith(base + "/") && typeof message.commandId === "string") job = fillCommand(message.commandId);
   else return;

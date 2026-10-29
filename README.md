@@ -19,7 +19,7 @@ This personal setup records **less than one year of professional experience**. I
 
 ## Requirements
 
-- Node.js **22 or newer** and npm.
+- Node.js **22 or newer** and **pnpm 12.16.1** (pinned in package.json).
 - **One** supported CLI installed and signed in:
   - [Codex CLI](https://learn.chatgpt.com/docs/codex-cli), using an existing ChatGPT/Codex login.
   - A current [Claude Code CLI](https://code.claude.com/docs/en/setup), using its own Claude login. The adapter requires support for `--safe-mode`, print mode and JSON Schema output.
@@ -31,8 +31,8 @@ No separate model API key or Ollama service is required by this application. Eac
 ## Run locally
 
 ```powershell
-npm install
-npm run dev
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
 Open **http://127.0.0.1:32187**. On Windows, you can also double-click **Start Application Composer.cmd**. Keep the server window open while using the app.
@@ -40,8 +40,8 @@ Open **http://127.0.0.1:32187**. On Windows, you can also double-click **Start A
 For a production build:
 
 ```powershell
-npm run build
-npm start
+pnpm build
+pnpm start
 ```
 
 The server binds to loopback. This is a local application, not a public deployment.
@@ -73,9 +73,11 @@ If the executable is in a custom location, set `COMPOSER_CODEX_PATH` or `COMPOSE
 
 ## Personal profile and context
 
-The current local installation is already populated from the supplied portfolio and CV. Name, email, portfolio, GitHub, project contributions, timezone and availability are not information that needs retyping for each application. Known fields are prefilled, and the CLI selects relevant projects for the particular job.
+The current local installation is already populated with the supplied CV and source-backed project context from the applicant's Izee Work and Personal Work folders. Portfolio entries supply public project URLs only. The applicant confirms the implemented work-folder projects are their work. Name, email, links, timezone and availability do not need retyping for each application.
 
-The saved starting rate policy is **USD 25/hour** for Upwork freelance work and **USD 2,000/month** for a long-term, full-time OnlineJobs.ph role at 40 hours/week. These are editable starting preferences, not a claim that either platform has one market rate. Rate suggestions adapt to the actual job and scope. Fixed-price assumptions belong in the applicant-only review notes.
+Drafts use normal hyphens (-), not em/en dashes, and simple, direct English and cover the complete client brief: questions, technologies, deliverables, requested examples and URLs, keywords, rate, timeline, platform recommendations and ongoing costs. The CLI selects relevant actual work rather than inserting a fixed list of integrations. It follows the requested number of examples, including 3–5 websites when asked. Internal source paths and review notes are not part of the client message.
+
+The saved starting rate policy is **USD 25/hour** for Upwork freelance work and **USD 2,000/month** for a long-term, full-time OnlineJobs.ph role at 40 hours/week. These are editable starting preferences, not a claim that either platform has one market rate. Rate suggestions adapt to the actual job and scope. Fixed-price assumptions belong in the applicant-only review notes. For normally scoped web projects, the saved agile timeline is 1-2 weeks: about 2 days of mockups, about 1 week for the MVP, with the rest for testing, revisions and client feedback. Adjust for the actual scope and dependencies.
 
 Private context deliberately stays out of this repository. On a fresh clone, restore your own `.local/profile.json` backup or populate **My profile**. To import this portfolio's existing Markdown export:
 
@@ -83,14 +85,14 @@ Private context deliberately stays out of this repository. On a fresh clone, res
 node scripts/import-portfolio.mjs "C:\path\to\portfolio"
 ```
 
-The importer reads `public/cyril-profile.md` and optional `.local/cv-source.txt`. It updates this app's copy without modifying the source portfolio or CV. Do not run it over later profile edits without making a backup.
+The legacy importer reads `public/cyril-profile.md` and optional `.local/cv-source.txt`. Do not use it to replace the current work-folder context: that would restore old portfolio contribution descriptions. Back up `.local/profile.json`, `.local/work-projects.json` and `.local/work-evidence/` to preserve this personalized setup. These private files are excluded from Git.
 
 ## Compose an application
 
 1. Choose the platform in the sidebar.
 2. Paste the **job title** and **complete job description**, including the employer's questions and required keywords.
-3. Choose **Prepare application**.
-4. Choose **Generate**. The selected CLI drafts, then reviews the application in a separate pass.
+3. Choose **Prepare application**. It captures the current details and starts generation immediately.
+4. The button shows **Generating application…**, then **Reviewing application…**. Inputs are locked while the selected CLI drafts and independently reviews the answers. **Generate with Codex/Claude** or **Regenerate** can also be used on the prepared form.
 5. Read the eligibility decision, question/keyword checks and any warnings. Edit wording as needed. Use **Review draft** after editing an AI-reviewed application.
 6. Copy the selected answers, or capture and fill the real website form with the companion.
 7. Review the original website form and click **Send/Submit** yourself.
@@ -106,10 +108,13 @@ The built-in platform forms are composition templates; they do not claim every l
 5. In the app, open **Browser setup** and copy the pairing key.
 6. Open the companion, expand **Pair with the local app**, paste the key, and choose **Save and check connection**.
 7. Open the app at **127.0.0.1:32187 in that same browser profile** and reload the tab. The in-app preview is useful for the app itself, but a Chrome extension cannot fill another browser's pages.
-8. On a visible website application form, click the companion and choose **Capture this form**.
-9. Review the mapped answers in the local app. Select only the fields you want, then choose **Fill selected fields**.
+8. On a job listing, open the companion, choose **OnlineJobs.ph**, **Upwork** or **Other**, and click **Capture & generate**. It captures the title/description, drafts and reviews an application, and displays the result in the popup while keeping you on the job website. A listing does not need editable inputs.
+9. Use the popup's individual **Copy** buttons or **Copy application**. Only answer text is copied; review notes and reasons are excluded. **Captured job details → Copy job details** is also available. Closing the popup does not cancel generation: reopen it to see progress or the saved result.
+10. When the actual application inputs are open, **Capture form** captures those fields and generates their answers. For browser autofill, open the full Composer workspace, review and select the mapped answers, then choose **Fill … fields**. Matching job descriptions are retained; unrelated jobs are not mixed together. You click Send yourself.
 
-The shipped extension requests `activeTab`, `scripting`, `storage`, and access to the localhost bridge. It does not request persistent access to all websites. Pairing secrets are stored locally in that browser profile.
+After updating this repository, use **Reload** on the companion's card in `chrome://extensions` / `edge://extensions`, then refresh Composer. Version 0.3.0 adds popup generation/results/copying. App-started generations are also shared with the paired popup. Captured job details use copyable application templates; they are never treated as live website form fields.
+
+The shipped extension requests `activeTab`, `scripting`, `storage`, `clipboardWrite` for the requested copy controls, and access to the localhost bridge. It does not request persistent access to all websites or clipboard read access. Pairing secrets and popup draft sessions are stored locally in that browser profile.
 
 Supported controls include visible standard text, email, URL, telephone, number and textarea fields, native selects, and common contenteditable fields. The app's own dropdowns are custom styled and keyboard accessible. Arbitrary third-party custom widgets, embedded frames and closed shadow roots may require manual entry. Passwords, hidden fields, uploads, checkboxes/declarations, payment details and submission controls are not filled.
 
@@ -125,6 +130,7 @@ Website interaction still depends on each platform's rules. Upwork also has an [
 - `.local/pairing.json`: browser pairing secret.
 - Browser local storage: separate in-progress platform workspaces.
 - `.local/jobs/`: temporary schema/output files, cleaned after each CLI job.
+- `.local/work-projects.json` and `.local/work-evidence/`: private source-backed project context. No credentials or private customer records are imported.
 
 `.local/`, `.env*`, browser test profiles, screenshots, `node_modules/` and Next.js build output are ignored by Git. Do not upload the CV, pairing file or local profile accidentally. Information selected for generation is sent to the selected CLI's model provider. The CLI's authentication files are reused in their normal location; this app does not copy or expose their tokens.
 
@@ -133,23 +139,26 @@ Draft processes receive their prompt on stdin without shell interpolation. Codex
 ## Development and verification
 
 ```powershell
-npm run typecheck
-npm test
+pnpm typecheck
+pnpm test
 node tests/browser-fields.mjs
-npm run build
+node tests/browser-job-capture.mjs
+node tests/browser-popup.mjs
+node tests/browser-prepare-generation.mjs
+pnpm build
 ```
 
 For the integration browser suite, run the development server in another terminal, then install the test browser **inside the ignored local directory**:
 
 ```powershell
 $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD\.local\browsers"
-npx playwright install chromium
-npm run test:browser
+pnpm exec playwright install chromium
+ppnpm test:browser
 ```
 
 The browser suite uses a separate temporary browser profile, a local fixture at port 32188, and isolated API state. It tests companion pairing, capture, review controls, actual extension filling, custom dropdowns, preservation of edits, no submission, and responsive layouts. Its fixture-only website permission is added to a temporary extension copy; the shipped manifest is unchanged.
 
-`npx tsx scripts/check-codex.ts` runs a real Codex draft and independent review against a labelled practice job. It uses the saved personal profile, consumes normal Codex usage, sends no applications and does not add the diagnostic to saved history.
+`pnpm exec tsx scripts/check-codex.ts` runs a real Codex draft and independent review against a labelled practice job. It uses the saved personal profile, consumes normal Codex usage, sends no applications and does not add the diagnostic to saved history.
 
 ## Troubleshooting
 
