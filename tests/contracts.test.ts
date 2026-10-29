@@ -35,8 +35,8 @@ test("output validation rejects invented field ids, duplicate answers and overlo
 test("application text uses normal hyphens while preserving exact select values", async () => {
   const { validateDraft } = await import("../src/lib/contracts");
   const fields = [{ id: "message", label: "Message", type: "textarea", value: "", required: true, maxLength: 1000, options: [] }, { id: "duration", label: "Duration", type: "select", value: "", required: false, maxLength: 100, options: [{ value: "1–2 weeks", label: "1–2 weeks" }] }];
-  const draft = validateDraft({ answers: [{ fieldId: "message", value: "Next.js — Supabase; 1–2 weeks", reason: "", needsInput: false }, { fieldId: "duration", value: "1–2 weeks", reason: "", needsInput: false }], notes: [] }, fields);
-  assert.equal(draft.answers[0].value, "Next.js - Supabase; 1-2 weeks");
+  const draft = validateDraft({ answers: [{ fieldId: "message", value: "Next.js — Supabase, 1–2 weeks", reason: "", needsInput: false }, { fieldId: "duration", value: "1–2 weeks", reason: "", needsInput: false }], notes: [] }, fields);
+  assert.equal(draft.answers[0].value, "Next.js - Supabase, 1-2 weeks");
   assert.equal(draft.answers[1].value, "1–2 weeks");
 });
 
@@ -49,6 +49,28 @@ test("timeline guidance uses the applicant's scoped agile delivery policy", asyn
   assert.match(prompt, /1 week.*MVP/i);
   assert.match(prompt, /testing.*client feedback/i);
   assert.match(prompt, /scope/i);
+});
+
+test("application prose has no semicolons while URLs and select values remain exact", async () => {
+  const { validateDraft, buildPrompt, emptyProfile } = await import("../src/lib/contracts");
+  const url = "HTTPS://example.com/demo;version=2";
+  const fields = [{ id: "message", label: "Message", type: "textarea", value: "", required: true, maxLength: 1000, options: [] }, { id: "choice", label: "Choice", type: "select", value: "", required: false, maxLength: 100, options: [{ value: "A;B", label: "A;B" }] }];
+  const draft = validateDraft({ answers: [{ fieldId: "message", value: "I injected JavaScript; I send form data to a CRM. " + url, reason: "", needsInput: false }, { fieldId: "choice", value: "A;B", reason: "", needsInput: false }], notes: [] }, fields);
+  assert.equal(draft.answers[0].value.replace(url, "").includes(";"), false);
+  assert.ok(draft.answers[0].value.includes(url));
+  assert.equal(draft.answers[1].value, "A;B");
+  assert.match(buildPrompt(emptyProfile, { id: "style", url: "https://example.com", title: "Job", context: "", fields, capturedAt: "", tabId: -1 }), /do not use semicolons/i);
+});
+
+test("script injection experience is used without internal caveats or WordPress widget claims", async () => {
+  const { buildPrompt, buildReviewPrompt, emptyProfile } = await import("../src/lib/contracts");
+  const profile = { ...emptyProfile, additionalSkills: "JavaScript script injection into existing sites and form listeners that send field data to CRM APIs." };
+  const capture = { id: "wordpress", url: "https://example.com", title: "WordPress developer", context: "Improve our WordPress forms and CRM integration", fields: [], capturedAt: "", tabId: -1 };
+  const prompt = buildPrompt(profile, capture);
+  assert.match(prompt, /JavaScript script injection/);
+  assert.match(prompt, /Do not relabel injected JavaScript.*WordPress widgets/);
+  assert.match(prompt, /Do not say "I have not confirmed/i);
+  assert.match(buildReviewPrompt(profile, capture, { answers: [], notes: [] }), /remove internal verification/i);
 });
 
 test("capture accepts only normal web pages and bounded editable fields", async () => {

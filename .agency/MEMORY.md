@@ -23,3 +23,6 @@
 
 - Use pnpm for project development, checks, installs and the launcher; packageManager pins pnpm 12.16.1.
 - Application writing uses normal hyphens (-). Standard scoped-web estimates use a 1-2 week agile cycle: about 2 days mockups, about 1 week MVP, then testing and client feedback, adjusted to actual scope.
+- Application prose must not use semicolons. Preserve exact URLs and actual platform select values.
+- User clarified the work is custom JavaScript script injection into existing sites, including form event listeners that send field data to client CRM APIs. Do not describe this as building WordPress widgets, themes or plugins. Use the relevant script/integration work directly, without internal verification caveats in client-facing text.
+- Companion 0.3.1 prioritizes active job panels and proposal-page Job details sections, handles case-insensitive description markers and display:contents, and avoids including search results or existing form answers. A Composer browser tab is unnecessary while the local server is running.

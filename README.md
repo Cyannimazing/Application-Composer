@@ -75,7 +75,7 @@ If the executable is in a custom location, set `COMPOSER_CODEX_PATH` or `COMPOSE
 
 The current local installation is already populated with the supplied CV and source-backed project context from the applicant's Izee Work and Personal Work folders. Portfolio entries supply public project URLs only. The applicant confirms the implemented work-folder projects are their work. Name, email, links, timezone and availability do not need retyping for each application.
 
-Drafts use normal hyphens (-), not em/en dashes, and simple, direct English and cover the complete client brief: questions, technologies, deliverables, requested examples and URLs, keywords, rate, timeline, platform recommendations and ongoing costs. The CLI selects relevant actual work rather than inserting a fixed list of integrations. It follows the requested number of examples, including 3–5 websites when asked. Internal source paths and review notes are not part of the client message.
+Drafts use normal hyphens (-), no semicolons in prose, and simple, direct English and cover the complete client brief: questions, technologies, deliverables, requested examples and URLs, keywords, rate, timeline, platform recommendations and ongoing costs. The CLI selects relevant actual work rather than inserting a fixed list of integrations. It follows the requested number of examples, including 3–5 websites when asked. Internal source paths and review notes are not part of the client message.
 
 The saved starting rate policy is **USD 25/hour** for Upwork freelance work and **USD 2,000/month** for a long-term, full-time OnlineJobs.ph role at 40 hours/week. These are editable starting preferences, not a claim that either platform has one market rate. Rate suggestions adapt to the actual job and scope. Fixed-price assumptions belong in the applicant-only review notes. For normally scoped web projects, the saved agile timeline is 1-2 weeks: about 2 days of mockups, about 1 week for the MVP, with the rest for testing, revisions and client feedback. Adjust for the actual scope and dependencies.
 
@@ -112,7 +112,9 @@ The built-in platform forms are composition templates; they do not claim every l
 9. Use the popup's individual **Copy** buttons or **Copy application**. Only answer text is copied; review notes and reasons are excluded. **Captured job details → Copy job details** is also available. Closing the popup does not cancel generation: reopen it to see progress or the saved result.
 10. When the actual application inputs are open, **Capture form** captures those fields and generates their answers. For browser autofill, open the full Composer workspace, review and select the mapped answers, then choose **Fill … fields**. Matching job descriptions are retained; unrelated jobs are not mixed together. You click Send yourself.
 
-After updating this repository, use **Reload** on the companion's card in `chrome://extensions` / `edge://extensions`, then refresh Composer. Version 0.3.0 adds popup generation/results/copying. App-started generations are also shared with the paired popup. Captured job details use copyable application templates; they are never treated as live website form fields.
+After updating this repository, use **Reload** on the companion's card in `chrome://extensions` / `edge://extensions`, then refresh Composer. Version 0.3.1 also handles proposal-page job-details cards and active slide-out panels, including descriptions with capitalized data attributes and display:contents wrappers. The actual job title is preferred over generic page headings such as Submit a proposal.
+
+The Composer browser tab does not need to remain open. The local server must remain running. Capture, generation, review and copy use the paired extension directly, and closing/reopening the popup restores the current result. App-started generations are also shared with the paired popup. Captured job details use copyable application templates and are never treated as live website form fields.
 
 The shipped extension requests `activeTab`, `scripting`, `storage`, `clipboardWrite` for the requested copy controls, and access to the localhost bridge. It does not request persistent access to all websites or clipboard read access. Pairing secrets and popup draft sessions are stored locally in that browser profile.
 
@@ -143,6 +145,7 @@ pnpm typecheck
 pnpm test
 node tests/browser-fields.mjs
 node tests/browser-job-capture.mjs
+node tests/browser-upwork-capture.mjs
 node tests/browser-popup.mjs
 node tests/browser-prepare-generation.mjs
 pnpm build

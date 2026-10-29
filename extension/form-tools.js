@@ -1,5 +1,5 @@
 (() => {
-  if (window.ApplicationComposer?.version === 2) return;
+  if (window.ApplicationComposer?.version === 3) return;
   let current = null;
   const protectedWords = /password|credit.?card|card.?number|\bcvv\b|\bcvc\b|one.?time.?password|verification.?code|secret.?key|captcha|\botp\b/i;
   const allowed = new Set(["text", "email", "url", "tel", "number", "search"]);
@@ -30,18 +30,59 @@
     visit(document);
     return found.slice(0, 100);
   }
-  function pageDetails() {
-    const description = Array.from(document.querySelectorAll('#job-description,[itemprop="description"],[data-test="description"],[data-test="job-description"],[data-test="job-details-description"],[data-testid="job-description"],.job-description')).find(visible);
-    const root = description || document.querySelector("main,[role=main],article") || document.body;
+  const descriptionSelector = '#job-description,[itemprop="description" i],[data-test="description" i],[data-test="job-description" i],[data-test="job-details-description" i],[data-testid="job-description" i],.job-description';
+  const genericTitle = /^(?:submit a proposal|proposal settings|job details|job overview|job description|description|terms|scope(?: and working arrangement)?|what success looks like|please include in your application|skills(?: and expertise)?|requirements|responsibilities|qualifications|search(?: freelance)? jobs|find work|apply(?: for this job)?|about (?:the client|this job))$/i;
+  function readableText(root) {
     const parts = [], walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
-      const parent = walker.currentNode.parentElement;
-      if (!parent || !visible(parent) || parent.closest('input,textarea,select,button,script,style,noscript,nav,footer,header,[contenteditable],[role="search"]')) continue;
-      const text = walker.currentNode.textContent.replace(/\s+/g, " ").trim();
-      if (text) parts.push(text);
+      const node = walker.currentNode, parent = node.parentElement;
+      const text = node.textContent.replace(/\s+/g, " ").trim();
+      if (!text || !parent || parent.closest('input,textarea,select,button,script,style,noscript,nav,footer,header,[contenteditable],[role="search"],[hidden],[aria-hidden="true"],[inert]')) continue;
+      const style = getComputedStyle(parent);
+      if (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse") continue;
+      // Text ranges still have layout when an ancestor uses display:contents.
+      const range = document.createRange(); range.selectNode(node);
+      if (!range.getClientRects().length) continue;
+      parts.push(text);
     }
-    const heading = Array.from(document.querySelectorAll("main h1,[role=main] h1,article h1,h1")).find(visible);
-    return { title: (heading?.textContent || document.title || "Job application").trim().slice(0, 1000), context: parts.join("\n").slice(0, 30000) };
+    return parts.join("\n").slice(0, 30000);
+  }
+  function jobSection(root) {
+    for (const heading of root.querySelectorAll('h1,h2,h3,h4,h5,[role="heading"],strong')) {
+      if (!/^(?:job details|job overview|job description)$/i.test(heading.textContent.trim()) || !visible(heading)) continue;
+      const section = heading.closest('section,article,[role="region"],.air3-card,.card');
+      if (section && root.contains(section) && readableText(section).length > 40) return section;
+      for (let parent = heading.parentElement; parent && root.contains(parent) && !parent.matches("main,[role=main],body"); parent = parent.parentElement) {
+        if (readableText(parent).length > heading.textContent.trim().length + 40) return parent;
+      }
+    }
+    return null;
+  }
+  function jobTitle(root) {
+    const candidates = [
+      ...root.querySelectorAll('[data-test="job-title" i],[data-testid="job-title" i],[itemprop="title"]'),
+      ...root.querySelectorAll('a[href*="/jobs/"]'),
+      ...root.querySelectorAll('h1,h2,h3,h4,[role="heading"]')
+    ];
+    const heading = candidates.find(el => visible(el) && !el.closest('nav,footer,[role="search"]') && el.textContent.trim() && !genericTitle.test(el.textContent.trim()));
+    return heading?.textContent.replace(/\s+/g, " ").trim().slice(0, 1000);
+  }
+  function pageDetails() {
+    const overlays = Array.from(document.querySelectorAll('dialog[open],[role="dialog"],[aria-modal="true"],.air3-slider-content,.air3-slider')).reverse();
+    const roots = [...overlays, ...document.querySelectorAll("main,[role=main],article"), document.body];
+    for (const candidate of roots) {
+      const section = jobSection(candidate);
+      const description = Array.from(candidate.querySelectorAll(descriptionSelector)).find(el => readableText(el).trim());
+      const overlay = overlays.includes(candidate);
+      if (overlay && !section && !description && !candidate.querySelector('[data-test="job-title" i],[data-testid="job-title" i],a[href*="/jobs/"]')) continue;
+      const root = section || (overlay ? candidate : description || candidate);
+      const context = readableText(root).trim();
+      if (!context) continue;
+      const titleScope = overlay ? candidate.closest('dialog,[role="dialog"],[aria-modal="true"],.air3-slider') || candidate : candidate;
+      const title = jobTitle(section || candidate) || jobTitle(titleScope) || (!overlay && jobTitle(document)) || document.title || "Job application";
+      return { title: title.trim().slice(0, 1000), context };
+    }
+    return { title: document.title || "Job application", context: "" };
   }
   function capture(id) {
     if (!id || typeof id !== "string") throw new Error("A capture id is required.");
@@ -85,5 +126,5 @@
     }
     return { filled, skipped };
   }
-  window.ApplicationComposer = { version: 2, capture, fill };
+  window.ApplicationComposer = { version: 3, capture, fill };
 })();
