@@ -1,0 +1,65 @@
+import assert from 'node:assert/strict';
+import { chromium } from 'playwright';
+import path from 'node:path';
+import { mkdir, readdir } from 'node:fs/promises';
+
+process.env.PLAYWRIGHT_BROWSERS_PATH ||= path.resolve('.local/browsers');
+const installed = (await readdir('.local/browsers')).find(name => /^chromium-\d+$/.test(name));
+const browser = await chromium.launch({ headless: true, executablePath: path.resolve('.local/browsers', installed, 'chrome-win64/chrome.exe') });
+const context = await browser.newContext({ extraHTTPHeaders: { 'X-Composer-Test': '1' }, permissions: ['clipboard-read', 'clipboard-write'], viewport: { width: 1440, height: 1000 } });
+const app = await context.newPage();
+app.setDefaultTimeout(10000);
+const question = 'What relevant CMS project have you worked on, and how would you handle Supabase RLS?';
+const fixture = { id: 'saved-practice', url: 'http://127.0.0.1:32187/practice-form.html', title: 'Practice form', context: 'Practice job', capturedAt: new Date().toISOString(), tabId: -1, practice: true, fields: [{ id: 'question', label: question, type: 'textarea', required: false, maxLength: 1000, value: '', options: [] }] };
+await context.addInitScript(({ fixture }) => {
+  if (sessionStorage.getItem('qa-seeded')) return;
+  sessionStorage.setItem('qa-seeded', 'yes');
+  const workspace = capture => ({ capture, draft: { answers: [], notes: [] }, selected: [], manual: false, title: '', context: '', questions: '' });
+  localStorage.setItem('composer-workspaces-v1', JSON.stringify({ onlinejobs: workspace(fixture), other: workspace({ ...fixture, id: 'real-draft', practice: false, manual: true, platform: 'other', url: 'http://127.0.0.1:32187/other/manual', title: 'Existing client', context: 'Real job details', fields: [{ ...fixture.fields[0], id: 'message', label: 'Application message' }] }) }));
+}, { fixture });
+await context.route('**/api/settings', route => route.fulfill({ json: { provider: 'codex' } }));
+await context.route('**/api/state', route => route.fulfill({ json: { capture: null, fillResult: null } }));
+await context.route('**/api/health', route => route.fulfill({ json: { available: true, loggedIn: true, version: 'QA', detail: '' } }));
+try {
+  await app.goto('http://127.0.0.1:32187/?platform=onlinejobs');
+  await app.getByRole('heading', { name: 'OnlineJobs.ph application', exact: true }).waitFor();
+  assert.equal(await app.getByLabel('Job title', { exact: true }).isVisible(), true, 'A saved practice form must not replace the default job-entry form');
+  assert.equal(await app.getByText(question, { exact: true }).count(), 0, 'Practice screening questions must not leak into the live application');
+  await app.getByRole('button', { name: 'Other websites', exact: true }).click();
+  assert.equal(await app.getByLabel('Job description', { exact: true }).inputValue(), 'Real job details', 'Keep actual saved jobs');
+  await app.getByRole('button', { name: 'OnlineJobs.ph', exact: true }).click();
+  await app.getByLabel('Job title', { exact: true }).fill('Frontend developer');
+  await app.getByLabel('Job description', { exact: true }).fill('Build a React interface. Include FRIENDLY in the subject.');
+  await app.getByRole('button', { name: 'Prepare application', exact: true }).click();
+  await app.waitForFunction(() => JSON.parse(localStorage.getItem('composer-workspaces-v1')).onlinejobs.capture.context.includes('Include FRIENDLY'));
+  await app.getByLabel('Answer for Application subject', { exact: true }).fill('FRIENDLY — React developer');
+  await app.getByLabel('Answer for Application message', { exact: true }).fill('Hey! I can help build your React interface. Happy to share a relevant project.');
+  await app.getByLabel('Select Application message', { exact: true }).uncheck();
+  await app.getByRole('button', { name: 'Copy all', exact: true }).click();
+  await app.getByRole('status').filter({ hasText: 'All filled answers copied' }).waitFor();
+  const copied = (await app.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n');
+  assert.match(copied, /Application subject\nFRIENDLY/);
+  assert.match(copied, /Application message\nHey!/);
+  assert.doesNotMatch(copied, /Apply Points|From your saved|Needs your input/);
+  await app.getByLabel('Job description', { exact: true }).fill('Saved real listing');
+  await app.waitForFunction(() => JSON.parse(localStorage.getItem('composer-workspaces-v1')).onlinejobs.context === 'Saved real listing');
+  await app.reload();
+  await app.getByLabel('Job description', { exact: true }).waitFor();
+  assert.equal(await app.getByLabel('Job description', { exact: true }).inputValue(), 'Saved real listing');
+  assert.equal(await app.getByText(question, { exact: true }).count(), 0);
+  await app.getByRole('button', { name: 'Open the practice form', exact: true }).click();
+  await app.frameLocator('iframe[title="Practice application form"]').locator('#subject').waitFor();
+  await app.waitForFunction(() => document.querySelector('iframe').contentWindow.ApplicationComposer);
+  await app.getByRole('button', { name: 'Capture practice form', exact: true }).click();
+  await app.getByLabel(`Answer for ${question}`, { exact: true }).waitFor();
+  await app.getByRole('button', { name: 'Close practice form', exact: true }).click();
+  assert.equal(await app.getByText(question, { exact: true }).count(), 0, 'Closing practice must restore the real application');
+  assert.equal(await app.getByLabel('Job description', { exact: true }).inputValue(), 'Saved real listing');
+  await mkdir('output/playwright', { recursive: true });
+  await app.screenshot({ path: 'output/playwright/workspace-copy-all-desktop.png', fullPage: true });
+  await app.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await app.locator('body').evaluate(el => el.scrollWidth <= innerWidth), true);
+  await app.screenshot({ path: 'output/playwright/workspace-copy-all-mobile.png', fullPage: true });
+  console.log('PASS: practice state removed, real jobs preserved, default entry survives refresh, Copy all includes unselected filled answers, mobile layout fits.');
+} catch (error) { console.error((await app.locator('body').innerText()).slice(0, 3500)); throw error; }
+finally { await browser.close(); }

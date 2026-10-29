@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "enabled": true,
+  "goal": "Build a local Next.js application composer with a browser companion and existing Codex CLI drafting.",
+  "stack": [
+    "Next.js",
+    "React",
+    "TypeScript",
+    "Chrome Manifest V3",
+    "Node.js",
+    "Codex CLI"
+  ],
+  "preferences": [
+    "Use the existing Codex CLI for drafts",
+    "Friendly and relevant professional applications",
+    "Do not mention internships",
+    "Human reviews and submits applications"
+  ],
+  "agents": [
+    {
+      "id": "engineering/engineering-frontend-developer",
+      "name": "Frontend Developer",
+      "role": "lead",
+      "profile": "profiles/engineering/engineering-frontend-developer.md"
+    },
+    {
+      "id": "engineering/engineering-developer-tooling-engineer",
+      "name": "Developer Tooling Engineer",
+      "role": "support",
+      "profile": "profiles/engineering/engineering-developer-tooling-engineer.md"
+    }
+  ],
+  "source": {
+    "repository": "https://github.com/msitarzewski/agency-agents",
+    "revision": "b37b5bb33b78f2c1d6567d98e25ca818e3259219"
+  },
+  "updated_at": "2026-10-29T17:31:42.630475+00:00"
+}

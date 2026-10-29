@@ -1,0 +1,7 @@
+node_modules/
+.next/
+.local/
+*.tsbuildinfo
+output/
+.env*
+.agency-selection.json
