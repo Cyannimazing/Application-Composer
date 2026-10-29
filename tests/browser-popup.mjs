@@ -32,6 +32,7 @@ try {
   await page.evaluate(() => { window.qaStage = "complete"; });
   await page.getByRole("button", { name: "Copy application", exact: true }).waitFor();
   await page.waitForFunction(() => !document.getElementById('copy-all').disabled);
+  assert.equal(await page.locator("#review strong").textContent(), "This job is compatible");
   await page.getByRole("button", { name: "Copy application", exact: true }).click();
   const copied = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, "\n");
   assert.match(copied, /Application subject\nCMS PARTNER/);
@@ -43,6 +44,7 @@ try {
   await page.getByRole("button", { name: "Generate again", exact: true }).click();
   const createAnyway = page.getByRole("button", { name: "Create anyway", exact: true });
   await createAnyway.waitFor();
+  assert.equal(await page.locator("#review strong").textContent(), "This job has unmet requirements");
   assert.equal(await page.getByRole("button", { name: "Copy application", exact: true }).isVisible(), false);
   assert.equal((await createAnyway.boundingBox()).height, 40);
   await page.screenshot({ path: "output/playwright/companion-create-anyway.png", fullPage: true });
@@ -53,6 +55,7 @@ try {
   await page.evaluate(() => { window.qaStage = "complete"; });
   await page.getByRole("button", { name: "Copy application", exact: true }).waitFor();
   assert.equal(await createAnyway.isVisible(), false);
+  assert.equal(await page.locator("#review strong").textContent(), "Compatibility needs review");
   await page.getByRole("button", { name: "Copy application", exact: true }).click();
   assert.match(await page.evaluate(() => navigator.clipboard.readText()), /Next.js CMS/);
   await page.getByRole("radio", { name: "Other", exact: true }).click();

@@ -28,3 +28,7 @@
 - Companion 0.3.1 prioritizes active job panels and proposal-page Job details sections, handles case-insensitive description markers and display:contents, and avoids including search results or existing form answers. A Composer browser tab is unnecessary while the local server is running.
 
 - Companion 0.3.2 and the workspace provide Create anyway for skipped jobs. This explicit per-generation option drafts and reviews honest answers despite qualification gaps, retaining warnings and needs_review. Ordinary generation retains the existing eligibility check.
+
+- Companion 0.3.3 and the workspace show explicit job compatibility labels for fit, needs_review and skip. Unmet requirements retain the Create anyway action.
+
+- Client-stated rates take priority. Choose lower-middle pricing within a client range (about 40% from minimum to maximum), or use a single stated hourly rate as given. Only without a stated rate, use USD 10/hour by default and USD 8-10/hour as the fallback. Respect stated monthly/fixed budgets and keep quote assumptions in applicant-only notes.

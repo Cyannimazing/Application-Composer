@@ -70,7 +70,7 @@ function renderSession(session) {
   reviewElement.hidden = false;
   reviewElement.className = review.eligibility === "skip" ? "review-warning" : "review-ready";
   const heading = document.createElement("strong");
-  heading.textContent = review.eligibility === "skip" ? "Skip: requirements not met" : review.eligibility === "needs_review" ? "Review these details" : "Drafted and reviewed";
+  heading.textContent = review.eligibility === "skip" ? "This job has unmet requirements" : review.eligibility === "needs_review" ? "Compatibility needs review" : "This job is compatible";
   const summary = document.createElement("p"); summary.textContent = review.summary;
   reviewElement.append(heading, summary);
   if (review.warnings?.length) { const warnings = document.createElement("p"); warnings.textContent = review.warnings.join(" "); reviewElement.append(warnings); }
