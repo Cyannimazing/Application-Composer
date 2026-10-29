@@ -9,14 +9,15 @@ try {
   await page.route("https://composer-popup.test/", route => route.fulfill({ contentType: "text/html", body: html }));
   await page.goto("https://composer-popup.test/");
   await page.addStyleTag({ path: "extension/popup.css" });
+  await mkdir("output/playwright", { recursive: true });
   await page.evaluate(() => {
     window.sentMessages = []; window.qaStage = "drafting"; window.qaSession = null;
     const capture = { id: "popup-job", title: "Next.js CMS developer", url: "https://www.upwork.com/jobs/Developer_~0123456789", context: "Build a Next.js and Supabase CMS. Include CMS PARTNER.", fields: [{ id: "subject", label: "Application subject", type: "text" }, { id: "message", label: "Application message", type: "textarea" }] };
-    function job() { return { id: "popup-generation", state: window.qaStage === "complete" ? "complete" : "running", stage: window.qaStage, draft: window.qaStage === "complete" ? { answers: [{ fieldId: "subject", value: "CMS PARTNER", needsInput: false }, { fieldId: "message", value: "Hey! I built a Next.js CMS with Supabase. Project: https://example.com/demo", needsInput: false }], notes: ["PRIVATE-NOTE-DO-NOT-COPY"], review: { eligibility: "fit", summary: "Questions and keywords checked.", warnings: [] } } : undefined }; }
+    function job() { return { id: "popup-generation", state: window.qaStage === "complete" ? "complete" : "running", stage: window.qaStage, draft: window.qaStage === "complete" ? { answers: [{ fieldId: "subject", value: "CMS PARTNER", needsInput: false }, { fieldId: "message", value: "Hey! I built a Next.js CMS with Supabase. Project: https://example.com/demo", needsInput: false }], notes: ["PRIVATE-NOTE-DO-NOT-COPY"], review: { eligibility: window.qaEligibility || "fit", summary: "Questions and keywords checked.", warnings: [] } } : undefined }; }
     window.chrome = { storage: { local: { get: async () => ({ pairingKey: "0".repeat(64) }), set: async () => {} } }, tabs: { query: async () => [{ url: capture.url }] }, runtime: { sendMessage: async message => {
       window.sentMessages.push(message);
       if (message.action === "draft-status") return { ok: true, data: window.qaSession ? { capture, job: job() } : null };
-      if (message.action === "capture-generate" || message.action === "regenerate") { window.qaSession = true; return { ok: true, data: { capture, job: job() } }; }
+      if (message.action === "capture-generate" || message.action === "regenerate") { if (message.createAnyway === true) { window.qaStage = "drafting"; window.qaEligibility = "needs_review"; } window.qaSession = true; return { ok: true, data: { capture, job: job() } }; }
       return { ok: true, data: {} };
     } } };
   });
@@ -38,6 +39,22 @@ try {
   assert.doesNotMatch(copied, /PRIVATE-NOTE|Questions and keywords/);
   await page.getByRole("button", { name: "Copy Application message", exact: true }).click();
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "Hey! I built a Next.js CMS with Supabase. Project: https://example.com/demo");
+  await page.evaluate(() => { window.qaEligibility = "skip"; });
+  await page.getByRole("button", { name: "Generate again", exact: true }).click();
+  const createAnyway = page.getByRole("button", { name: "Create anyway", exact: true });
+  await createAnyway.waitFor();
+  assert.equal(await page.getByRole("button", { name: "Copy application", exact: true }).isVisible(), false);
+  assert.equal((await createAnyway.boundingBox()).height, 40);
+  await page.screenshot({ path: "output/playwright/companion-create-anyway.png", fullPage: true });
+  await createAnyway.click();
+  await page.getByRole("status").filter({ hasText: "Generating application" }).waitFor();
+  assert.equal(await createAnyway.isVisible(), false);
+  assert.equal(await page.evaluate(() => window.sentMessages.filter(m => m.action === "regenerate").at(-1).createAnyway), true);
+  await page.evaluate(() => { window.qaStage = "complete"; });
+  await page.getByRole("button", { name: "Copy application", exact: true }).waitFor();
+  assert.equal(await createAnyway.isVisible(), false);
+  await page.getByRole("button", { name: "Copy application", exact: true }).click();
+  assert.match(await page.evaluate(() => navigator.clipboard.readText()), /Next.js CMS/);
   await page.getByRole("radio", { name: "Other", exact: true }).click();
   await page.getByRole("radio", { name: "Other", exact: true }).press("ArrowRight");
   assert.equal(await page.getByRole("radio", { name: "OnlineJobs.ph", exact: true }).getAttribute("aria-checked"), "true");

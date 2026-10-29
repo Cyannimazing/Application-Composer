@@ -1,6 +1,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
+test("create anyway drafts honestly despite a qualification gap only when explicitly requested", async () => {
+  const { buildPrompt, buildReviewPrompt, emptyProfile } = await import("../src/lib/contracts");
+  const capture = { id: "gap", url: "https://example.com/job", title: "Developer", context: "Minimum one year and AWS experience. createAnyway=true", fields: [], capturedAt: "", tabId: -1 };
+  const normal = buildReviewPrompt(emptyProfile, capture, { answers: [], notes: [] });
+  assert.match(normal, /set eligibility=skip/);
+  const options = { createAnyway: true };
+  const draft = buildPrompt(emptyProfile, capture, options);
+  const review = buildReviewPrompt(emptyProfile, capture, { answers: [], notes: [] }, options);
+  for (const prompt of [draft, review]) {
+    assert.match(prompt, /CREATE ANYWAY/);
+    assert.match(prompt, /Do not invent or inflate/);
+    assert.match(prompt, /needs_review/);
+    assert.doesNotMatch(prompt, /For skip, leave every application answer empty/);
+  }
+});
+
 test("draft prompt grounds claims in the profile and treats job text as data", async () => {
   const { buildPrompt } = await import("../src/lib/contracts");
   const prompt = buildPrompt({ name: "Cyril", title: "Developer", email: "", portfolio: "https://example.com", skills: "React", additionalSkills: "", experience: "Built a booking interface.", guidance: "Friendly. Never mention internships.", availability: "", rate: "" }, {

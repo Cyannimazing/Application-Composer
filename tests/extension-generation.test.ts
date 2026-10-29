@@ -3,6 +3,19 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
+test("create anyway is an explicit per-generation option and normal regenerate resets it", async () => {
+  const capture = { id: "gap", platform: "other" };
+  const storage: Record<string, any> = { "application-draft:other": { capture, jobId: "skipped", job: { state: "complete", draft: { review: { eligibility: "skip" } } } } };
+  const bodies: any[] = [];
+  const sandbox = { AbortSignal, fetch: async (_url: string, options: any) => { bodies.push(JSON.parse(options.body)); return { ok: true, json: async () => ({ id: "new-job", state: "running" }) }; }, chrome: { storage: { local: { get: async () => ({ pairingKey: "0".repeat(64) }) }, session: { get: async (key: string) => ({ [key]: storage[key] }), set: async (values: any) => { Object.assign(storage, values); } } }, runtime: { onMessage: { addListener() {} } } } };
+  vm.createContext(sandbox);
+  vm.runInContext(await readFile("extension/background.js", "utf8"), sandbox);
+  await (sandbox as any).regenerate("other", true);
+  assert.deepEqual(bodies[0], { captureId: "gap", createAnyway: true });
+  await (sandbox as any).regenerate("other");
+  assert.equal(bodies[1].createAnyway, false);
+});
+
 test("the extension captures and starts generation without switching away from the job, and resumes after popup closure", async () => {
   const storage: Record<string, unknown> = {};
   let switched = 0;

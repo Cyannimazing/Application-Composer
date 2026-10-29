@@ -26,3 +26,5 @@
 - Application prose must not use semicolons. Preserve exact URLs and actual platform select values.
 - User clarified the work is custom JavaScript script injection into existing sites, including form event listeners that send field data to client CRM APIs. Do not describe this as building WordPress widgets, themes or plugins. Use the relevant script/integration work directly, without internal verification caveats in client-facing text.
 - Companion 0.3.1 prioritizes active job panels and proposal-page Job details sections, handles case-insensitive description markers and display:contents, and avoids including search results or existing form answers. A Composer browser tab is unnecessary while the local server is running.
+
+- Companion 0.3.2 and the workspace provide Create anyway for skipped jobs. This explicit per-generation option drafts and reviews honest answers despite qualification gaps, retaining warnings and needs_review. Ordinary generation retains the existing eligibility check.

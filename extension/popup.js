@@ -6,6 +6,7 @@ const key = document.getElementById("key");
 const result = document.getElementById("result");
 const answersElement = document.getElementById("answers");
 const copyAll = document.getElementById("copy-all");
+const createAnywayButton = document.getElementById("create-anyway");
 const regenerateButton = document.getElementById("regenerate");
 const platformButtons = Array.from(document.querySelectorAll("[data-platform]"));
 let platform = "other", latest = null, pollTimer = null, starting = false, initialized = false;
@@ -16,7 +17,7 @@ function setStatus(text, loading = false) {
   if (loading) { const spinner = document.createElement("span"); spinner.className = "spinner"; spinner.setAttribute("aria-hidden", "true"); status.append(spinner); }
   status.append(document.createTextNode(text));
 }
-function setBusy(busy) { capture.disabled = busy; captureJob.disabled = busy; regenerateButton.disabled = busy; }
+function setBusy(busy) { capture.disabled = busy; captureJob.disabled = busy; regenerateButton.disabled = busy; createAnywayButton.disabled = busy; }
 function choosePlatform(value, focus = false) {
   requestRevision++;
   clearTimeout(pollTimer); platform = value; latest = null; copyParts = []; result.hidden = true; setBusy(false);
@@ -45,7 +46,7 @@ async function copyText(value) {
 function renderSession(session) {
   latest = session; copyParts = []; answersElement.replaceChildren(); copyAll.disabled = true;
   document.body.classList.toggle("has-result", Boolean(session?.capture));
-  copyAll.hidden = true;
+  copyAll.hidden = true; createAnywayButton.hidden = true;
   if (!session?.capture) { result.hidden = true; setBusy(false); setStatus("Choose a platform and capture the job. You send the application yourself."); return; }
   const source = session.capture, job = session.job;
   result.hidden = false;
@@ -73,7 +74,7 @@ function renderSession(session) {
   const summary = document.createElement("p"); summary.textContent = review.summary;
   reviewElement.append(heading, summary);
   if (review.warnings?.length) { const warnings = document.createElement("p"); warnings.textContent = review.warnings.join(" "); reviewElement.append(warnings); }
-  if (review.eligibility === "skip") { setStatus("A required qualification does not match your profile. Review the explanation."); return; }
+  if (review.eligibility === "skip") { createAnywayButton.hidden = false; setStatus("A required qualification does not match your profile. Review the explanation."); return; }
   for (const field of source.fields) {
     const answer = job.draft.answers.find(item => item.fieldId === field.id);
     if (!answer || (!answer.value?.trim() && !answer.needsInput)) continue;
@@ -99,7 +100,7 @@ async function refreshDraft() {
   try { const session = await message({ action: "draft-status", platform: requested }); if (platform === requested && revision === requestRevision) renderSession(session); }
   catch (error) { if (platform === requested && revision === requestRevision) { setStatus(error.message); setBusy(false); regenerateButton.hidden = false; } }
 }
-async function act(button, action) {
+async function act(button, action, loadingText = "Capturing job details…") {
   if (starting) return;
   starting = true; setBusy(true); setStatus("Capturing job details…", true); clearTimeout(pollTimer);
   const requested = platform;
@@ -114,7 +115,8 @@ async function act(button, action) {
 }
 captureJob.addEventListener("click", () => act(captureJob, () => message({ action: "capture-generate", mode: "job", platform })));
 capture.addEventListener("click", () => act(capture, () => message({ action: "capture-generate", mode: "form", platform })));
-regenerateButton.addEventListener("click", () => act(regenerateButton, () => message({ action: "regenerate", platform })));
+regenerateButton.addEventListener("click", () => act(regenerateButton, () => message({ action: "regenerate", platform }), "Generating application…"));
+createAnywayButton.addEventListener("click", () => act(createAnywayButton, () => message({ action: "regenerate", platform, createAnyway: true }), "Generating application…"));
 copyAll.addEventListener("click", () => copyText(copyParts.length === 1 ? copyParts[0].value : copyParts.map(part => part.label + "\n" + part.value).join("\n\n")));
 document.getElementById("copy-details").addEventListener("click", () => { if (latest?.capture) void copyText(latest.capture.title + "\n\n" + latest.capture.context); });
 save.addEventListener("click", async () => {

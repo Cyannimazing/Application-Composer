@@ -32,13 +32,13 @@ async function captureTab(mode = "form", platform, openComposer = true) {
   return { count: capture.fields.length, mode: jobListing ? "job" : "form", capture: prepared };
 }
 function sessionKey(platform) { return "application-draft:" + (["onlinejobs", "upwork", "other"].includes(platform) ? platform : "other"); }
-async function generateCaptured(capture, platform) {
+async function generateCaptured(capture, platform, createAnyway = false) {
   const key = sessionKey(platform);
   const previous = (await chrome.storage.session.get(key))[key];
   const pending = previous?.capture.id === capture.id ? { ...previous, error: null } : { capture, jobId: null, error: null };
   await chrome.storage.session.set({ [key]: pending });
   try {
-    const job = await api("/generate", { method: "POST", body: JSON.stringify({ captureId: capture.id }) });
+    const job = await api("/generate", { method: "POST", body: JSON.stringify({ captureId: capture.id, createAnyway }) });
     await chrome.storage.session.set({ [key]: { capture, jobId: job.id, error: null } });
     return { capture, job };
   } catch (error) {
@@ -61,10 +61,10 @@ async function draftStatus(platform) {
   if (job.state === "complete") await chrome.storage.session.set({ [key]: { ...session, job } });
   return { capture: session.capture, job };
 }
-async function regenerate(platform) {
+async function regenerate(platform, createAnyway = false) {
   const key = sessionKey(platform), values = await chrome.storage.session.get(key), session = values[key];
   if (!session?.capture) throw new Error("Capture a job before generating.");
-  return generateCaptured(session.capture, platform);
+  return generateCaptured(session.capture, platform, createAnyway === true);
 }
 async function rememberDraft(jobId, captureId) {
   const job = await api("/jobs/" + encodeURIComponent(jobId));
@@ -94,7 +94,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (message?.action === "capture" && ownPage) job = captureTab(message.mode, message.platform);
   else if (message?.action === "capture-generate" && ownPage) job = captureAndGenerate(message.mode, message.platform);
   else if (message?.action === "draft-status" && ownPage) job = draftStatus(message.platform);
-  else if (message?.action === "regenerate" && ownPage) job = regenerate(message.platform);
+  else if (message?.action === "regenerate" && ownPage) job = regenerate(message.platform, message.createAnyway);
   else if (message?.action === "draft-session" && sender.tab?.url?.startsWith(base + "/") && typeof message.jobId === "string" && typeof message.captureId === "string") job = rememberDraft(message.jobId, message.captureId);
   else if (message?.action === "check" && ownPage) job = api("");
   else if (message?.action === "fill" && sender.tab?.url?.startsWith(base + "/") && typeof message.commandId === "string") job = fillCommand(message.commandId);

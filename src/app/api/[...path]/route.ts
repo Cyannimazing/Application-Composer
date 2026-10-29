@@ -31,13 +31,13 @@ async function bridgeGuard(request: Request): Promise<Response | null> {
   if (key.length !== expected.length || !timingSafeEqual(Buffer.from(key), Buffer.from(expected))) return Response.json({ error: "Pairing key not accepted. Copy the key from Browser setup and save it in the companion." }, { status: 401, headers: cors(request) });
   return null;
 }
-async function generateForCapture(capture: Capture, request: Request, draft?: Draft) {
+async function generateForCapture(capture: Capture, request: Request, draft?: Draft, createAnyway = false) {
   if (!capture.fields.length) throw new Error("Capture job details or an application form before generating.");
   const profile = await getProfile();
   if (!profile.name.trim() || !profile.experience.trim()) throw new Error("Add your name and project experience in My profile before drafting.");
   const provider = await getProviderSetting();
   if (!provider) throw new Error("Choose and verify your drafting CLI in Browser setup before generating.");
-  return startDraft(profile, capture, draft, { provider, persist: request.headers.get("x-composer-test") !== "1" });
+  return startDraft(profile, capture, draft, { provider, persist: request.headers.get("x-composer-test") !== "1", createAnyway });
 }
 export async function OPTIONS(request: Request) {
   return new Response(null, { status: extensionOrigin(request.headers.get("origin") || "") ? 204 : 403, headers: cors(request) });
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       if (endpoint === "bridge/generate") {
         const capture = runtimeState.captures[String(body.captureId)];
         if (!capture) throw new Error("This capture is no longer available. Capture the job again before generating.");
-        return Response.json(await generateForCapture(capture, request), { status: 202, headers: cors(request) });
+        return Response.json(await generateForCapture(capture, request, undefined, body.createAnyway === true), { status: 202, headers: cors(request) });
       }
       if (endpoint === "bridge/result") {
         const command = runtimeState.command;
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
     if (endpoint === "generate" || endpoint === "review") {
       const capture = validateCapture(body.capture);
       runtimeState.captures[capture.id] = capture;
-      return Response.json(await generateForCapture(capture, request, endpoint === "review" ? validateDraft(body.draft, capture.fields) : undefined), { status: 202 });
+      return Response.json(await generateForCapture(capture, request, endpoint === "review" ? validateDraft(body.draft, capture.fields) : undefined, body.createAnyway === true), { status: 202 });
     }
     if (endpoint === "fill") {
       const capture = runtimeState.captures[String(body.captureId)];

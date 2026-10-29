@@ -13,7 +13,7 @@ export const codexStatus = () => cliStatus("codex");
 export type DraftJob = { id: string; captureId: string; state: "running" | "complete" | "failed"; stage: "drafting" | "reviewing"; startedAt: string; draft?: Draft; error?: string };
 const jobsGlobal = globalThis as typeof globalThis & { composerJobs?: Map<string, DraftJob> };
 export const jobs = jobsGlobal.composerJobs ??= new Map<string, DraftJob>();
-export function startDraft(profile: Profile, capture: Capture, existingDraft?: Draft, options: { provider?: Provider; persist?: boolean } = {}): DraftJob {
+export function startDraft(profile: Profile, capture: Capture, existingDraft?: Draft, options: { provider?: Provider; persist?: boolean; createAnyway?: boolean } = {}): DraftJob {
   if ([...jobs.values()].some(job => job.state === "running")) throw new Error("Another draft is being generated. Wait for it to finish before starting a new one.");
   for (const [id, job] of jobs) if (Date.now() - Date.parse(job.startedAt) > 3600000) jobs.delete(id);
   const job: DraftJob = { id: crypto.randomUUID(), captureId: capture.id, state: "running", stage: existingDraft ? "reviewing" : "drafting", startedAt: new Date().toISOString() };
@@ -33,9 +33,9 @@ export function startDraft(profile: Profile, capture: Capture, existingDraft?: D
         }
         return validateDraft(provider === "codex" ? JSON.parse(await readFile(output, "utf8")) : parseClaudeOutput(result.out), capture.fields);
       };
-      const candidate = existingDraft || await pass(buildPrompt(profile, capture), false);
+      const candidate = existingDraft || await pass(buildPrompt(profile, capture, options), false);
       job.stage = "reviewing";
-      const draft = await pass(buildReviewPrompt(profile, capture, candidate), true);
+      const draft = await pass(buildReviewPrompt(profile, capture, candidate, options), true);
       if (!draft.review) throw new Error("The review did not finish. Review the draft again before using it.");
       if (options.persist !== false) await addHistory({ id: job.id, createdAt: new Date().toISOString(), capture, draft });
       Object.assign(job, { state: "complete", draft });

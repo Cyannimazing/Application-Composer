@@ -114,6 +114,8 @@ The built-in platform forms are composition templates; they do not claim every l
 
 After updating this repository, use **Reload** on the companion's card in `chrome://extensions` / `edge://extensions`, then refresh Composer. Version 0.3.1 also handles proposal-page job-details cards and active slide-out panels, including descriptions with capitalized data attributes and display:contents wrappers. The actual job title is preferred over generic page headings such as Submit a proposal.
 
+**Create anyway** appears when a review marks a job to skip. It generates and independently reviews an application using actual experience, keeps unmet qualifications in review warnings, and never claims those requirements are met. The result is marked for review and supports the usual copy controls. This is a per-generation choice. **Generate again** runs the normal eligibility check. Reload companion version 0.3.2 after updating.
+
 The Composer browser tab does not need to remain open. The local server must remain running. Capture, generation, review and copy use the paired extension directly, and closing/reopening the popup restores the current result. App-started generations are also shared with the paired popup. Captured job details use copyable application templates and are never treated as live website form fields.
 
 The shipped extension requests `activeTab`, `scripting`, `storage`, `clipboardWrite` for the requested copy controls, and access to the localhost bridge. It does not request persistent access to all websites or clipboard read access. Pairing secrets and popup draft sessions are stored locally in that browser profile.

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Application Composer Companion",
   "description": "Capture job descriptions or application fields for OnlineJobs.ph, Upwork and other websites. Review answers locally and submit yourself.",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "permissions": ["activeTab", "scripting", "storage", "clipboardWrite"],
   "host_permissions": ["http://127.0.0.1:32187/*"],
   "background": { "service_worker": "background.js" },
