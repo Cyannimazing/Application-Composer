@@ -8,7 +8,10 @@
     "start": "next start --hostname 127.0.0.1 --port 32187",
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "test:browser": "node scripts/browser-check.mjs"
+    "test:browser": "node scripts/browser-check.mjs",
+    "desktop:build": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File desktop/build.ps1",
+    "desktop:install": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File desktop/build.ps1 -InstallDesktop",
+    "desktop:test": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File desktop/test.ps1"
   },
   "dependencies": {
     "@fontsource/geist": "^5.2.8",

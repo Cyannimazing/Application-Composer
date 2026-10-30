@@ -99,6 +99,10 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   else if (message?.action === "check" && ownPage) job = api("");
   else if (message?.action === "fill" && sender.tab?.url?.startsWith(base + "/") && typeof message.commandId === "string") job = fillCommand(message.commandId);
   else return;
-  job.then(data => respond({ ok: true, data })).catch(error => respond({ ok: false, error: error.message || "Browser action failed." }));
+  const closeBridge = async () => {
+    if (message.closeDesktopBridge !== true || !sender.tab?.id || !sender.tab.url?.startsWith(base + "/api/desktop/bridge?")) return;
+    try { const tab = await chrome.tabs.get(sender.tab.id); if (tab.url === sender.tab.url) await chrome.tabs.remove(sender.tab.id); } catch {}
+  };
+  job.then(data => { respond({ ok: true, data }); void closeBridge(); }).catch(error => { respond({ ok: false, error: error.message || "Browser action failed." }); void closeBridge(); });
   return true;
 });

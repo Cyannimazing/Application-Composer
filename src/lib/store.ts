@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { emptyProfile, type Capture, type Draft, type Profile } from "./contracts";
-export const localDir = path.join(process.cwd(), ".local");
+export const localDir = process.env.COMPOSER_DATA_DIR ? path.resolve(process.env.COMPOSER_DATA_DIR) : path.join(process.cwd(), ".local");
 const queueGlobal = globalThis as typeof globalThis & { composerWriteQueues?: Map<string, Promise<unknown>> };
 const writeQueues = queueGlobal.composerWriteQueues ??= new Map<string, Promise<unknown>>();
 function queued(directory: string, operation: () => Promise<void>): Promise<void> {

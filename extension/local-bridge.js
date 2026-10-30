@@ -13,4 +13,11 @@
     }
   });
   announce();
+  const query = new URLSearchParams(location.search);
+  if (location.pathname === "/api/desktop/bridge") {
+    const valid = value => typeof value === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(value);
+    const action = query.get("operation");
+    const input = action === "fill" && valid(query.get("commandId")) ? { action, commandId: query.get("commandId") } : action === "draft-session" && valid(query.get("jobId")) && valid(query.get("captureId")) ? { action, jobId: query.get("jobId"), captureId: query.get("captureId") } : null;
+    if (input) chrome.runtime.sendMessage({ ...input, closeDesktopBridge: true }).catch(() => {});
+  }
 })();

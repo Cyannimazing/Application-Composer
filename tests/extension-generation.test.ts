@@ -3,6 +3,21 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
+test("desktop fill dispatch closes only its unchanged temporary bridge tab", async () => {
+  const base = "http://127.0.0.1:32187";
+  for (const [bridgeUrl, navigated, expected] of [[base + "/api/desktop/bridge?operation=fill&commandId=command", false, true], [base + "/", false, false], [base + "/api/desktop/bridge?operation=fill&commandId=command", true, false]] as const) {
+    let listener: any; const removed: number[] = [];
+    const jobUrl = "https://example.com/apply";
+    const sandbox = { AbortSignal, fetch: async (url: string) => ({ ok: true, json: async () => url.includes("/command?") ? { command: { tabId: 7, url: jobUrl, captureId: "capture", answers: [{ fieldId: "message", value: "Reviewed answer" }] } } : { ok: true } }), chrome: { storage: { local: { get: async () => ({ pairingKey: "0".repeat(64) }) } }, tabs: { get: async (id: number) => ({ url: id === 7 ? jobUrl : navigated ? base + "/?different" : bridgeUrl }), remove: async (id: number) => { removed.push(id); } }, scripting: { executeScript: async () => [{ result: { filled: ["message"], skipped: [] } }] }, runtime: { getURL: () => "chrome-extension://test/", onMessage: { addListener(fn: any) { listener = fn; } } } } };
+    vm.createContext(sandbox); vm.runInContext(await readFile("extension/background.js", "utf8"), sandbox);
+    const response: any = await new Promise(resolve => listener({ action: "fill", commandId: "command", closeDesktopBridge: true }, { tab: { id: 12, url: bridgeUrl }, url: bridgeUrl }, resolve));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(response.ok, true);
+    assert.deepEqual(removed, expected ? [12] : []);
+    assert.equal(removed.includes(7), false);
+  }
+});
+
 test("create anyway is an explicit per-generation option and normal regenerate resets it", async () => {
   const capture = { id: "gap", platform: "other" };
   const storage: Record<string, any> = { "application-draft:other": { capture, jobId: "skipped", job: { state: "complete", draft: { review: { eligibility: "skip" } } } } };

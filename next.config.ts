@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
+  distDir: process.env.COMPOSER_DESKTOP_BUILD === "1" ? ".next-desktop" : ".next",
+  output: process.env.COMPOSER_DESKTOP_BUILD === "1" ? "standalone" : undefined,
   poweredByHeader: false,
   devIndicators: false,
   serverExternalPackages: [],
+  outputFileTracingIncludes: { "/*": ["./node_modules/@swc/helpers/**/*"] },
   outputFileTracingExcludes: {
     "/*": ["./.local/**/*", "./output/**/*"],
   },

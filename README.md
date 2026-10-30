@@ -46,6 +46,24 @@ pnpm start
 
 The server binds to loopback. This is a local application, not a public deployment.
 
+## Standalone Windows desktop app
+
+```powershell
+pnpm desktop:install
+```
+
+Double-click **Application Composer.exe** on Desktop. It opens its own window. Closing the window shuts down its local server and owned child processes. No terminal or separate Composer browser tab is required. The EXE bundles Next.js, Node.js and the WebView2 SDK libraries, so running it does not require this checkout, pnpm or a separate Node installation. Windows 10/11 x64, .NET Framework 4.8 and Microsoft's Evergreen WebView2 Runtime are required. The selected Codex/Claude CLI must remain installed and signed in.
+
+First launch extracts versioned resources under **%LOCALAPPDATA%\ApplicationComposer\versions**. Persistent data lives under **%LOCALAPPDATA%\ApplicationComposer\data**. The app migrates allowlisted profile, settings, pairing and history files once from the original ignored `.local` folder without overwriting later desktop edits. CLI credentials and private data are never embedded in the package or committed. `COMPOSER_DESKTOP_HOME` can select another absolute data/cache folder. Replacing the EXE preserves saved desktop data.
+
+Stop an old `pnpm dev`/browser server once before opening the desktop app. The desktop app refuses external servers so it can guarantee shutdown when its window closes. Minimizing hides the window in the system tray while keeping the server running. Double-click the AC tray icon, select Open, or run the EXE again to restore it. Window X and tray Exit shut down the app and owned server. Reopening the EXE focuses the same window without starting a duplicate server.
+
+The companion remains in Chrome/Edge for job capture and website forms. Reload **0.3.4** after updating. Native reviewed-fill and draft-session actions use a temporary localhost tab in the Windows default browser/profile, which must have the paired companion installed. Only that unchanged bridge tab closes afterward. The job tab is preserved. Capture, popup generation and copying remain available.
+
+`pnpm desktop:build` builds `.local/desktop-build/Application Composer.exe`; `pnpm desktop:install` also copies it to Desktop. Build requires Node, pnpm, Windows .NET compiler/tar, and downloads the pinned official WebView2 SDK. Packaging uses `.next-desktop`; normal development uses `.next`. Close the desktop app before rebuilding; a shared mutex enforces that rule. Generated binaries stay outside Git. For packaging diagnostics only, the build script supports `-SkipAppBuild` and `-ReuseBundle` to reuse an already verified app/archive while changing the native host; normal pnpm build commands always regenerate the package.
+
+`pnpm desktop:test` verifies extraction, profile migration, port conflicts, ownership and process cleanup. The EXE's `--smoke-test` checks bundled startup/shutdown without opening a window. Logs are under **%LOCALAPPDATA%\ApplicationComposer\launcher.log**. The icon and generator are in `desktop/`. [Windows job objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects) contain owned descendants; [WebView2](https://learn.microsoft.com/microsoft-edge/webview2/concepts/distribution) renders the native application window.
+
 ## First opening: choose and verify a CLI
 
 1. Select **Codex CLI (ChatGPT)** or **Claude CLI (Anthropic)**.

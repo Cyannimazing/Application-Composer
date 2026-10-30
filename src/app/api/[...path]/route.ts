@@ -68,6 +68,8 @@ export async function GET(request: Request) {
       return Response.json({ ok: true }, { headers: cors(request) });
     }
     const denied = localGuard(request); if (denied) return denied;
+    if (endpoint === "desktop/status") return Response.json({ application: "application-composer", ready: true }, { headers: { "Cache-Control": "no-store" } });
+    if (endpoint === "desktop/bridge") return new Response('<!doctype html><html lang="en"><meta charset="utf-8"><title>Application Composer</title><body style="font:16px/1.6 system-ui;max-width:560px;margin:80px auto;padding:24px"><h1>Connecting to your browser companion</h1><p>This temporary tab closes when the companion finishes. Your desktop app stays open.</p><p>If this page stays open, reload the Application Composer extension and check pairing in Browser setup.</p></body></html>', { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
     if (endpoint === "profile") return Response.json(await getProfile());
     if (endpoint === "state") return Response.json(runtimeState, { headers: { "Cache-Control": "no-store" } });
     if (endpoint === "settings") return Response.json({ provider: await getProviderSetting() });

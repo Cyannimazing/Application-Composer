@@ -32,3 +32,8 @@
 - Companion 0.3.3 and the workspace show explicit job compatibility labels for fit, needs_review and skip. Unmet requirements retain the Create anyway action.
 
 - Client-stated rates take priority. Choose lower-middle pricing within a client range (about 40% from minimum to maximum), or use a single stated hourly rate as given. Only without a stated rate, use USD 10/hour by default and USD 8-10/hour as the fallback. Respect stated monthly/fixed budgets and keep quote assumptions in applicant-only notes.
+
+- Standalone native desktop app: bundled Next + Node + embedded WebView2 SDK, own window, close X shuts down owned server/job tree. Persistent desktop data is %LOCALAPPDATA%/ApplicationComposer/data after one-time migration; future desktop profile updates belong there. Original development .local remains separate. Companion 0.3.4 bridges native fill/draft events through a temporary localhost tab, no new permissions. Desktop EXE and private data remain outside Git.
+
+- Minimize hides the app in the system tray and keeps its server running; tray Open/double-click/second EXE launch restores it. X or tray Exit shuts down its owned server. Browser handoff uses the Windows default profile, which needs the paired companion.
+- Always include saved portfolio and GitHub links in the main message with a friendly portfolio-for-more-sample-work line. Use technology names without version numbers. Preserve rates, hours, timelines and URLs. Both saved profile locations and importer defaults have this guidance.
