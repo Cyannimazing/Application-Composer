@@ -37,3 +37,5 @@
 
 - Minimize hides the app in the system tray and keeps its server running; tray Open/double-click/second EXE launch restores it. X or tray Exit shuts down its owned server. Browser handoff uses the Windows default profile, which needs the paired companion.
 - Always include saved portfolio and GitHub links in the main message with a friendly portfolio-for-more-sample-work line. Use technology names without version numbers. Preserve rates, hours, timelines and URLs. Both saved profile locations and importer defaults have this guidance.
+
+- Keep generated subjects/titles short and direct (usually 3-7 words). Generic start-with application keywords belong at the start of the message body before greetings, not in the header. Explicit subject-specific employer instructions take precedence. Independently review brevity and keyword placement. Saved in both runtime profiles and importer defaults.
