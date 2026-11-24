@@ -18,12 +18,15 @@ child.stderr.on('data', data => { errors = (errors + data).slice(-5000); });
 child.stdout.on('data', data => { errors = (errors + data).slice(-5000); });
 const statusRequest = () => new Promise((resolve,reject) => {
   const request = http.get({hostname:'127.0.0.1',port,path:'/api/desktop/status',headers:{Host:'127.0.0.1:32187'}}, response => { let body=''; response.on('data',data=>{body+=data}); response.on('end',()=>{lastResponse=response.statusCode+': '+body.slice(0,500);try{resolve(JSON.parse(body))}catch(error){reject(error)}}); });
-  request.setTimeout(1000,()=>request.destroy(new Error('timeout'))); request.on('error',reject);
+  request.setTimeout(5000,()=>request.destroy(new Error('timeout'))); request.on('error',reject);
 });
 try {
   let ready = false;
-  for (let i = 0; i < 60 && child.exitCode === null; i++) {
-    try { const json = await statusRequest(); if (json.application === 'application-composer') { ready = true; break; } } catch {}
+  // A relocated bundle's first route load can exceed one second on Windows.
+  // Allow that cold response while keeping the whole startup check bounded.
+  const deadline = Date.now() + 60000;
+  for (let i = 0; i < 60 && Date.now() < deadline && child.exitCode === null; i++) {
+    try { const json = await statusRequest(); if (json.application === 'application-composer') { ready = true; break; } } catch (error) { lastResponse = error.message; }
     await new Promise(resolve => setTimeout(resolve, 200));
   }
   if (!ready) throw new Error('Staged standalone server failed: ' + lastResponse + '\n' + errors);

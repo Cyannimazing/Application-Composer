@@ -12,8 +12,10 @@ Use **Copy all** above the answers to copy every filled answer in form order, wi
 
 The writing process has two independent CLI passes:
 
-1. **Draft:** connect the client's requirements to relevant project work and answer the questions.
-2. **Review:** check the questions, mandatory keywords, technology claims, contribution scope, rate policy and experience requirements. Correct the draft before displaying it as reviewed.
+1. **Draft:** lead with what the applicant can offer for the advertised role and the employer's goal, support it with closely matched work and full public URLs, and answer the actual questions. Adapt the contribution to an ongoing team role or a one-off project.
+2. **Review:** assess the message as the hiring manager. Rewrite generic pitches, project-only summaries and feature lists into a focused application, then check questions, mandatory keywords, technology claims, contribution scope, rate policy and experience requirements. Correct the draft before displaying it as reviewed.
+
+Messages use simple English, short paragraphs and copy-ready plain text, with relevant project URLs and saved portfolio/GitHub links. Technology names have no version numbers. Subjects stay short. Generic required opening keywords belong at the start of the body unless the employer explicitly asks for them in the subject. Unsolicited call/demo offers are omitted.
 
 This personal setup records **less than one year of professional experience**. It must not claim 1+, 2+, 3+ or more years. A hard experience minimum the applicant does not meet is marked **Skip**. Ambiguous or preferred requirements are flagged for review. Internship wording is omitted from application messages; actual project contributions remain the source of claims.
 

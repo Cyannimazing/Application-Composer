@@ -39,3 +39,5 @@
 - Always include saved portfolio and GitHub links in the main message with a friendly portfolio-for-more-sample-work line. Use technology names without version numbers. Preserve rates, hours, timelines and URLs. Both saved profile locations and importer defaults have this guidance.
 
 - Keep generated subjects/titles short and direct (usually 3-7 words). Generic start-with application keywords belong at the start of the message body before greetings, not in the header. Explicit subject-specific employer instructions take precedence. Independently review brevity and keyword placement. Saved in both runtime profiles and importer defaults.
+
+- Application writing now leads with a role-specific offer and employer benefit, supported by relevant work and full public URLs. Both CLI passes distinguish ongoing roles from projects. Independent review rewrites generic pitches, project-only summaries and feature dumps, and removes unsolicited call/demo offers. Both private runtime profiles and importer defaults preserve this guidance. Desktop builds must be refreshed for prompt-code changes.
