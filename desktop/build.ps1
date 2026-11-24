@@ -46,7 +46,11 @@ try {
         & "$env:WINDIR/System32/tar.exe" -a -c -f $archive -C $stage .
         if ($LASTEXITCODE -ne 0) { throw "Native Windows archive creation failed." }
     } elseif (-not (Test-Path -LiteralPath $archive)) { throw 'No existing bundle archive to reuse.' }
-    $bundleId = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant().Substring(0,20)
+    # Use the framework directly so packaging also works in shells without Get-FileHash.
+    $archiveStream = [System.IO.File]::OpenRead($archive)
+    $bundleHash = [System.Security.Cryptography.SHA256]::Create()
+    try { $bundleId = ([System.BitConverter]::ToString($bundleHash.ComputeHash($archiveStream))).Replace('-','').ToLowerInvariant().Substring(0,20) }
+    finally { $archiveStream.Dispose(); $bundleHash.Dispose() }
     & (Join-Path $PSScriptRoot 'create-icon.ps1')
     $configPath = Join-Path $buildRoot 'BuildConfig.cs'
     $config = 'namespace ApplicationComposerDesktop { internal static class BuildConfig { internal const string SourceRoot = @"' + $projectRoot.Replace('"','""') + '"; internal const string BundleId = "' + $bundleId + '"; } }'
